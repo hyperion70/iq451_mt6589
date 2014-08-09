@@ -1,0 +1,104 @@
+[EINT_variables]
+MT7118_WIMAX
+MT5921_WIFI
+BT
+KPD_PWRKEY
+KPD_SLIDE
+TOUCH_PANEL
+MT6326_PMIC
+HEADSET
+MHALL
+HALL_1
+HALL_2
+HALL_3
+FM_RDS
+HALL_4
+ALS
+OFN
+WIFI
+COMBO_BGF
+COMBO_ALL
+GSE_1
+GSE_2
+MSE
+GYRO
+ACCDET
+OTG_IDDIG
+CMMB
+NFC
+HEADSET_HOOK
+MT6329_PMIC
+EINT_HDMI_HPD
+DT_EXT_MD_WDT
+DT_EXT_MD_WK_UP
+DT_EXT_MD_WK_UP_USB
+EVDO_DT_EXT_MDM_RDY
+EVDO_DT_EXT_MDM_WAKE_AP
+EVDO_DT_EXT_MDM_RST_IND
+EVDO_DT_EXT_MDM_PWR_ON
+EVDO_DT_EXT_UART_MDM_WAKE_AP
+SIM1_HOT_PLUG
+SIM2_HOT_PLUG
+MSDC1_INS
+MSDC2_INS
+
+[MD1_EINT_variables]
+MD1_SIM1_HOT_PLUG_EINT
+MD1_SIM2_HOT_PLUG_EINT
+
+[MD2_EINT_variables]
+AST_DATA_INTR
+MD2_SIM1_HOT_PLUG_EINT
+MD2_SIM2_HOT_PLUG_EINT
+
+[cust_eint.h_HEADER]
+#ifndef __CUST_EINTH
+#define __CUST_EINTH
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define CUST_EINT_POLARITY_LOW              0
+#define CUST_EINT_POLARITY_HIGH             1
+#define CUST_EINT_DEBOUNCE_DISABLE          0
+#define CUST_EINT_DEBOUNCE_ENABLE           1
+#define CUST_EINT_EDGE_SENSITIVE            0
+#define CUST_EINT_LEVEL_SENSITIVE           1
+
+//////////////////////////////////////////////////////////////////////////////
+
+[cust_eint_ext.h_HEADER]
+#ifndef __CUST_EINT_EXTH
+#define __CUST_EINT_EXTH
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define CUST_EINT_POLARITY_LOW              0
+#define CUST_EINT_POLARITY_HIGH             1
+#define CUST_EINT_DEBOUNCE_DISABLE          0
+#define CUST_EINT_DEBOUNCE_ENABLE           1
+#define CUST_EINT_EDGE_SENSITIVE            0
+#define CUST_EINT_LEVEL_SENSITIVE           1
+
+//////////////////////////////////////////////////////////////////////////////
+
+[cust_eint.h_TAILER]
+
+//////////////////////////////////////////////////////////////////////////////
+#ifdef __cplusplus
+}
+
+#endif
+#endif //_CUST_EINT_H
+
+[cust_eint_ext.h_TAILER]
+
+//////////////////////////////////////////////////////////////////////////////
+#ifdef __cplusplus
+}
+
+#endif
+#endif //_CUST_EINT__EXT_H

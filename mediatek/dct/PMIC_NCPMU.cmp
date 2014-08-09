@@ -1,0 +1,17 @@
+[PMIC_TABLE]
+NUM_LDO = 0
+
+
+[pmic_drv.h_HEADER]
+#ifndef _PMIC_DRV_H
+#define _PMIC_DRV_H
+
+[pmic_drv.h_TAILER]
+#endif /* _PMIC_DRV_H */
+
+[pmic_drv.c_HEADER]
+#ifdef __CUST_NEW__
+#include "pmic_drv.h"
+
+[pmic_drv.c_TAILER]
+#endif /* __CUST_NEW__ */

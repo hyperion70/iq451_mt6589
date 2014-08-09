@@ -1,0 +1,501 @@
+/*
+ * MD218A voice coil motor driver
+ *
+ *
+ */
+
+#include <linux/i2c.h>
+#include <linux/delay.h>
+#include <linux/platform_device.h>
+#include <linux/cdev.h>
+#include <linux/uaccess.h>
+#include <linux/fs.h>
+#include <asm/atomic.h>
+#include "OV8825TRULYAF.h"
+#include "../camera/kd_camera_hw.h"
+
+#define LENS_I2C_BUSNUM 1
+static struct i2c_board_info __initdata kd_lens_dev={ I2C_BOARD_INFO("OV8825TRULYAF", 0x6d)};
+
+
+#define OV8825TRULYAF_DRVNAME "OV8825TRULYAF"
+#define OV8825TRULYAF_VCM_WRITE_ID           0x6c
+
+#define OV8825TRULYAF_DEBUG
+#ifdef OV8825TRULYAF_DEBUG
+#define OV8825TRULYAFDB printk
+#else
+#define OV8825TRULYAFDB(x,...)
+#endif
+
+static spinlock_t g_OV8825TRULYAF_SpinLock;
+extern int iReadReg(u16 a_u2Addr , u8 * a_puBuff , u16 i2cId);
+extern int iWriteReg(u16 a_u2Addr , u32 a_u4Data , u32 a_u4Bytes , u16 i2cId);
+#define OV8825TRULYAF_write_cmos_sensor(addr, para) iWriteReg((u16) addr , (u32) para , 1, OV8825TRULYAF_VCM_WRITE_ID)
+
+kal_uint16 OV8825TRULYAF_read_cmos_sensor(kal_uint32 addr)
+{
+kal_uint16 get_byte=0;
+    iReadReg((u16) addr ,(u8*)&get_byte,OV8825TRULYAF_VCM_WRITE_ID);
+    return get_byte;
+}
+
+static struct i2c_client * g_pstOV8825TRULYAF_I2Cclient = NULL;
+
+static dev_t g_OV8825TRULYAF_devno;
+static struct cdev * g_pOV8825TRULYAF_CharDrv = NULL;
+static struct class *actuator_class = NULL;
+
+static int  g_s4OV8825TRULYAF_Opened = 0;
+static long g_i4MotorStatus = 0;
+static long g_i4Dir = 0;
+static unsigned long g_u4OV8825TRULYAF_INF = 0;
+static unsigned long g_u4OV8825TRULYAF_MACRO = 1023;
+static unsigned long g_u4TargetPosition = 0;
+static unsigned long g_u4CurrPosition   = 0;
+
+static int g_sr = 3;
+
+extern s32 mt_set_gpio_mode(u32 u4Pin, u32 u4Mode);
+extern s32 mt_set_gpio_out(u32 u4Pin, u32 u4PinOut);
+extern s32 mt_set_gpio_dir(u32 u4Pin, u32 u4Dir);
+
+
+static int s4OV8825TRULYAF_ReadReg(unsigned short * a_pu2Result)
+{
+    int  temp = 0;
+    //char pBuff[2];
+
+    temp = (OV8825TRULYAF_read_cmos_sensor(0x3618)+ (OV8825TRULYAF_read_cmos_sensor(0x3619)<<8))>>4;
+
+    *a_pu2Result = temp;
+	OV8825TRULYAFDB("s4OV8825TRULYAF_ReadReg = %d \n", temp);
+    return 0;
+}
+
+static int s4OV8825TRULYAF_WriteReg(u16 a_u2Data)
+{
+    u16 temp,SlewRate=0;
+    OV8825TRULYAFDB("s4OV8825TRULYAF_WriteReg = %d \n", a_u2Data);
+	
+	temp=(a_u2Data<<4)+0+SlewRate;
+	OV8825TRULYAFDB("-----stemp=(a_u2Data<<4)+8+SlewRate = %d----- \n", temp);
+	
+	OV8825TRULYAF_write_cmos_sensor(0x3619,(temp>>8)&0xff);
+	
+	OV8825TRULYAF_write_cmos_sensor(0x3618,temp&0xff);
+
+    return 0;
+}
+
+inline static int getOV8825TRULYAFInfo(__user stOV8825TRULYAF_MotorInfo * pstMotorInfo)
+{
+    stOV8825TRULYAF_MotorInfo stMotorInfo;
+    stMotorInfo.u4MacroPosition   = g_u4OV8825TRULYAF_MACRO;
+    stMotorInfo.u4InfPosition     = g_u4OV8825TRULYAF_INF;
+    stMotorInfo.u4CurrentPosition = g_u4CurrPosition;
+	if (g_i4MotorStatus == 1)	{stMotorInfo.bIsMotorMoving = 1;}
+	else						{stMotorInfo.bIsMotorMoving = 0;}
+
+	if (g_s4OV8825TRULYAF_Opened >= 1)	{stMotorInfo.bIsMotorOpen = 1;}
+	else						{stMotorInfo.bIsMotorOpen = 0;}
+
+    if(copy_to_user(pstMotorInfo , &stMotorInfo , sizeof(stOV8825TRULYAF_MotorInfo)))
+    {
+        OV8825TRULYAFDB("[OV8825TRULYAF] copy to user failed when getting motor information \n");
+    }
+
+    return 0;
+}
+
+inline static int moveOV8825TRULYAF(unsigned long a_u4Position)
+{
+    int ret = 0;
+    
+    if((a_u4Position > g_u4OV8825TRULYAF_MACRO) || (a_u4Position < g_u4OV8825TRULYAF_INF))
+    {
+        OV8825TRULYAFDB("[OV8825TRULYAF] out of range \n");
+        return -EINVAL;
+    }
+
+    if (g_s4OV8825TRULYAF_Opened == 1)
+    {
+        unsigned short InitPos;
+        ret = s4OV8825TRULYAF_ReadReg(&InitPos);
+	    
+        spin_lock(&g_OV8825TRULYAF_SpinLock);
+        if(ret == 0)
+        {
+            OV8825TRULYAFDB("[OV8825TRULYAF] Init Pos %6d \n", InitPos);
+            g_u4CurrPosition = (unsigned long)InitPos;
+        }
+        else
+        {		
+            g_u4CurrPosition = 0;
+        }
+        g_s4OV8825TRULYAF_Opened = 2;
+        spin_unlock(&g_OV8825TRULYAF_SpinLock);
+    }
+
+    if (g_u4CurrPosition < a_u4Position)
+    {
+        spin_lock(&g_OV8825TRULYAF_SpinLock);	
+        g_i4Dir = 1;
+        spin_unlock(&g_OV8825TRULYAF_SpinLock);	
+    }
+    else if (g_u4CurrPosition > a_u4Position)
+    {
+        spin_lock(&g_OV8825TRULYAF_SpinLock);	
+        g_i4Dir = -1;
+        spin_unlock(&g_OV8825TRULYAF_SpinLock);			
+    }
+    else										{return 0;}
+
+    spin_lock(&g_OV8825TRULYAF_SpinLock);    
+    g_u4TargetPosition = a_u4Position;
+    spin_unlock(&g_OV8825TRULYAF_SpinLock);	
+
+    //OV8825TRULYAFDB("[OV8825TRULYAF] move [curr] %d [target] %d\n", g_u4CurrPosition, g_u4TargetPosition);
+
+            spin_lock(&g_OV8825TRULYAF_SpinLock);
+            g_sr = 3;
+            g_i4MotorStatus = 0;
+            spin_unlock(&g_OV8825TRULYAF_SpinLock);	
+		
+            if(s4OV8825TRULYAF_WriteReg((unsigned short)g_u4TargetPosition) == 0)
+            {
+                spin_lock(&g_OV8825TRULYAF_SpinLock);		
+                g_u4CurrPosition = (unsigned long)g_u4TargetPosition;
+                spin_unlock(&g_OV8825TRULYAF_SpinLock);				
+            }
+            else
+            {
+                OV8825TRULYAFDB("[OV8825TRULYAF] set I2C failed when moving the motor \n");			
+                spin_lock(&g_OV8825TRULYAF_SpinLock);
+                g_i4MotorStatus = -1;
+                spin_unlock(&g_OV8825TRULYAF_SpinLock);				
+            }
+
+    return 0;
+}
+
+inline static int setOV8825TRULYAFInf(unsigned long a_u4Position)
+{
+    spin_lock(&g_OV8825TRULYAF_SpinLock);
+    g_u4OV8825TRULYAF_INF = a_u4Position;
+    spin_unlock(&g_OV8825TRULYAF_SpinLock);	
+    return 0;
+}
+
+inline static int setOV8825TRULYAFMacro(unsigned long a_u4Position)
+{
+    spin_lock(&g_OV8825TRULYAF_SpinLock);
+    g_u4OV8825TRULYAF_MACRO = a_u4Position;
+    spin_unlock(&g_OV8825TRULYAF_SpinLock);	
+    return 0;	
+}
+
+////////////////////////////////////////////////////////////////
+static long OV8825TRULYAF_Ioctl(
+struct file * a_pstFile,
+unsigned int a_u4Command,
+unsigned long a_u4Param)
+{
+    long i4RetValue = 0;
+
+    switch(a_u4Command)
+    {
+        case OV8825TRULYAFIOC_G_MOTORINFO :
+            i4RetValue = getOV8825TRULYAFInfo((__user stOV8825TRULYAF_MotorInfo *)(a_u4Param));
+        break;
+
+        case OV8825TRULYAFIOC_T_MOVETO :
+            i4RetValue = moveOV8825TRULYAF(a_u4Param);
+        break;
+ 
+        case OV8825TRULYAFIOC_T_SETINFPOS :
+            i4RetValue = setOV8825TRULYAFInf(a_u4Param);
+        break;
+
+        case OV8825TRULYAFIOC_T_SETMACROPOS :
+            i4RetValue = setOV8825TRULYAFMacro(a_u4Param);
+        break;
+		
+        default :
+      	    OV8825TRULYAFDB("[OV8825TRULYAF] No CMD \n");
+            i4RetValue = -EPERM;
+        break;
+    }
+
+    return i4RetValue;
+}
+
+//Main jobs:
+// 1.check for device-specified errors, device not ready.
+// 2.Initialize the device if it is opened for the first time.
+// 3.Update f_op pointer.
+// 4.Fill data structures into private_data
+//CAM_RESET
+static int OV8825TRULYAF_Open(struct inode * a_pstInode, struct file * a_pstFile)
+{
+    spin_lock(&g_OV8825TRULYAF_SpinLock);
+
+    if(g_s4OV8825TRULYAF_Opened)
+    {
+        spin_unlock(&g_OV8825TRULYAF_SpinLock);
+        OV8825TRULYAFDB("[OV8825TRULYAF] the device is opened \n");
+        return -EBUSY;
+    }
+
+    g_s4OV8825TRULYAF_Opened = 1;
+		
+    spin_unlock(&g_OV8825TRULYAF_SpinLock);
+
+    return 0;
+}
+
+//Main jobs:
+// 1.Deallocate anything that "open" allocated in private_data.
+// 2.Shut down the device on last close.
+// 3.Only called once on last time.
+// Q1 : Try release multiple times.
+static int OV8825TRULYAF_Release(struct inode * a_pstInode, struct file * a_pstFile)
+{
+    if (g_s4OV8825TRULYAF_Opened)
+    {
+        OV8825TRULYAFDB("[OV8825TRULYAF] feee \n");
+        g_sr = 5;
+
+        if (g_u4CurrPosition > 700)  {
+            s4OV8825TRULYAF_WriteReg(700);
+            msleep(3);
+        }
+
+        if (g_u4CurrPosition > 600)  {
+            s4OV8825TRULYAF_WriteReg(600);
+            msleep(3);
+        }
+
+        if (g_u4CurrPosition > 500)  {
+            s4OV8825TRULYAF_WriteReg(500);
+            msleep(3);
+        }
+
+        if (g_u4CurrPosition > 400)  {
+            s4OV8825TRULYAF_WriteReg(400);
+            msleep(3);
+        }
+
+        if (g_u4CurrPosition > 300)  {
+            s4OV8825TRULYAF_WriteReg(300);
+            msleep(3);
+        }
+
+        if (g_u4CurrPosition > 200)  {
+	        s4OV8825TRULYAF_WriteReg(200);
+            msleep(3);
+        }
+
+        if (g_u4CurrPosition > 100)   {
+	        s4OV8825TRULYAF_WriteReg(100);
+            msleep(3);
+        }
+            	            	    	    
+        spin_lock(&g_OV8825TRULYAF_SpinLock);
+        g_s4OV8825TRULYAF_Opened = 0;
+        spin_unlock(&g_OV8825TRULYAF_SpinLock);
+
+    }
+
+    return 0;
+}
+
+static const struct file_operations g_stOV8825TRULYAF_fops = 
+{
+    .owner = THIS_MODULE,
+    .open = OV8825TRULYAF_Open,
+    .release = OV8825TRULYAF_Release,
+    .unlocked_ioctl = OV8825TRULYAF_Ioctl
+};
+
+inline static int Register_OV8825TRULYAF_CharDrv(void)
+{
+    struct device* vcm_device = NULL;
+
+    //Allocate char driver no.
+    if( alloc_chrdev_region(&g_OV8825TRULYAF_devno, 0, 1,OV8825TRULYAF_DRVNAME) )
+    {
+        OV8825TRULYAFDB("[OV8825TRULYAF] Allocate device no failed\n");
+
+        return -EAGAIN;
+    }
+
+    //Allocate driver
+    g_pOV8825TRULYAF_CharDrv = cdev_alloc();
+
+    if(NULL == g_pOV8825TRULYAF_CharDrv)
+    {
+        unregister_chrdev_region(g_OV8825TRULYAF_devno, 1);
+
+        OV8825TRULYAFDB("[OV8825TRULYAF] Allocate mem for kobject failed\n");
+
+        return -ENOMEM;
+    }
+
+    //Attatch file operation.
+    cdev_init(g_pOV8825TRULYAF_CharDrv, &g_stOV8825TRULYAF_fops);
+
+    g_pOV8825TRULYAF_CharDrv->owner = THIS_MODULE;
+
+    //Add to system
+    if(cdev_add(g_pOV8825TRULYAF_CharDrv, g_OV8825TRULYAF_devno, 1))
+    {
+        OV8825TRULYAFDB("[OV8825TRULYAF] Attatch file operation failed\n");
+
+        unregister_chrdev_region(g_OV8825TRULYAF_devno, 1);
+
+        return -EAGAIN;
+    }
+
+    actuator_class = class_create(THIS_MODULE, "actuatordrv2");
+    if (IS_ERR(actuator_class)) {
+        int ret = PTR_ERR(actuator_class);
+        OV8825TRULYAFDB("Unable to create class, err = %d\n", ret);
+        return ret;            
+    }
+
+    vcm_device = device_create(actuator_class, NULL, g_OV8825TRULYAF_devno, NULL, OV8825TRULYAF_DRVNAME);
+
+    if(NULL == vcm_device)
+    {
+        return -EIO;
+    }
+    
+    return 0;
+}
+
+inline static void Unregister_OV8825TRULYAF_CharDrv(void)
+{
+    //Release char driver
+    cdev_del(g_pOV8825TRULYAF_CharDrv);
+
+    unregister_chrdev_region(g_OV8825TRULYAF_devno, 1);
+    
+    device_destroy(actuator_class, g_OV8825TRULYAF_devno);
+
+    class_destroy(actuator_class);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+static int OV8825TRULYAF_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id);
+static int OV8825TRULYAF_i2c_remove(struct i2c_client *client);
+static const struct i2c_device_id OV8825TRULYAF_i2c_id[] = {{OV8825TRULYAF_DRVNAME,0},{}};   
+struct i2c_driver OV8825TRULYAF_i2c_driver = {                       
+    .probe = OV8825TRULYAF_i2c_probe,                                   
+    .remove = OV8825TRULYAF_i2c_remove,                           
+    .driver.name = OV8825TRULYAF_DRVNAME,                 
+    .id_table = OV8825TRULYAF_i2c_id,                             
+};  
+
+#if 0 
+static int OV8825TRULYAF_i2c_detect(struct i2c_client *client, int kind, struct i2c_board_info *info) {         
+    strcpy(info->type, OV8825TRULYAF_DRVNAME);                                                         
+    return 0;                                                                                       
+}      
+#endif 
+static int OV8825TRULYAF_i2c_remove(struct i2c_client *client) {
+    return 0;
+}
+
+/* Kirby: add new-style driver {*/
+static int OV8825TRULYAF_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
+{
+    int i4RetValue = 0;
+
+    OV8825TRULYAFDB("[OV8825TRULYAF] Attach I2C \n");
+
+    /* Kirby: add new-style driver { */
+    g_pstOV8825TRULYAF_I2Cclient = client;
+    
+    //g_pstOV8825TRULYAF_I2Cclient->addr = g_pstOV8825TRULYAF_I2Cclient->addr >> 1;
+    
+    //Register char driver
+    i4RetValue = Register_OV8825TRULYAF_CharDrv();
+
+    if(i4RetValue){
+
+        OV8825TRULYAFDB("[OV8825TRULYAF] register char device failed!\n");
+
+        return i4RetValue;
+    }
+
+    spin_lock_init(&g_OV8825TRULYAF_SpinLock);
+
+    OV8825TRULYAFDB("[OV8825TRULYAF] Attached!! \n");
+
+    return 0;
+}
+
+static int OV8825TRULYAF_probe(struct platform_device *pdev)
+{
+    return i2c_add_driver(&OV8825TRULYAF_i2c_driver);
+}
+
+static int OV8825TRULYAF_remove(struct platform_device *pdev)
+{
+    i2c_del_driver(&OV8825TRULYAF_i2c_driver);
+    return 0;
+}
+
+static int OV8825TRULYAF_suspend(struct platform_device *pdev, pm_message_t mesg)
+{
+    return 0;
+}
+
+static int OV8825TRULYAF_resume(struct platform_device *pdev)
+{
+    return 0;
+}
+
+// platform structure
+static struct platform_driver g_stOV8825TRULYAF_Driver = {
+    .probe		= OV8825TRULYAF_probe,
+    .remove	= OV8825TRULYAF_remove,
+    .suspend	= OV8825TRULYAF_suspend,
+    .resume	= OV8825TRULYAF_resume,
+    .driver		= {
+        .name	= "lens_actuator2",
+        .owner	= THIS_MODULE,
+    }
+};
+
+static struct platform_device actuator_dev2 = {
+	.name		  = "lens_actuator2",
+	.id		  = -1,
+};
+static int __init OV8825TRULYAF_i2C_init(void)
+{
+    i2c_register_board_info(LENS_I2C_BUSNUM, &kd_lens_dev, 1);
+    platform_device_register(&actuator_dev2);
+    if(platform_driver_register(&g_stOV8825TRULYAF_Driver)){
+        OV8825TRULYAFDB("failed to register OV8825TRULYAF driver\n");
+        return -ENODEV;
+    }
+
+    return 0;
+}
+
+static void __exit OV8825TRULYAF_i2C_exit(void)
+{
+	platform_driver_unregister(&g_stOV8825TRULYAF_Driver);
+}
+
+module_init(OV8825TRULYAF_i2C_init);
+module_exit(OV8825TRULYAF_i2C_exit);
+
+MODULE_DESCRIPTION("OV8825TRULYAF lens module driver");
+MODULE_AUTHOR("KY Chen <ky.chen@Mediatek.com>");
+MODULE_LICENSE("GPL");
+
+

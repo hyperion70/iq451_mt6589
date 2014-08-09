@@ -1,0 +1,47 @@
+Check DB result: 0
+Examine DB result: 0
+Start Parsing: 20:09:26
+Phase 1: 20:09:26
+Phase 2: 20:09:26
+Start Parsing: 20:09:26
+Phase 1: 20:09:26
+Phase 2: 20:09:26
+Reading custom_data succeeded.
+Start to parse the custom NVRAM DATA!
+NVRAM ID:AP_CFG_CUSTOM_FILE_GPS_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_BWCS_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_CAMERA_3A_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_CAMERA_DEFECT_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_CAMERA_LENS_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_CAMERA_PARA_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_CAMERA_SENSOR_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_CAMERA_SHADING_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FACTORY_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_AUDENH_CONTROL_OPTION_PAR_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_COMPFLT_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_EFFECT_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_GAIN_TABLE_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_HD_REC_48K_PAR_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_HD_REC_PAR_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_HD_REC_SCENE_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_PARAM_MED_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_VER1_VOLUME_CUSTOM_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_VOLUME_CUSTOM_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUDIO_WB_PARAM_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_AUXADC_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_DUAL_MIC_CUSTOM_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_HEADPHONE_COMPFLT_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_FILE_VOICE_RECOGNIZE_PARAM_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDCL_HWMON_ACC_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDEB_FILE_BT_ADDR_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDEB_FILE_WIFI_LID in original Database is replaced!
+NVRAM ID:AP_CFG_RDEB_WIFI_CUSTOM_LID in original Database is replaced!
+NVRAM ID:AP_CFG_REEB_PRODUCT_INFO_LID in original Database is replaced!
+Generating "./APDB_MT6589_S01_MAIN2.1_W10.24".
+Check ./APDB_MT6589_S01_MAIN2.1_W10.24
+Check DB result: 0
+Write DB result: 0
+Create file "./APDB_MT6589_S01_MAIN2.1_W10.24" successfully. 
+Creating file "./APDB_MT6589_S01_MAIN2.1_W10.24_ENUM".
+Create file "./APDB_MT6589_S01_MAIN2.1_W10.24_ENUM" successfully. 
