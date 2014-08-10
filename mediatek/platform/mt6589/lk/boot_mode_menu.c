@@ -23,13 +23,13 @@ void boot_mode_menu_select()
           video_clean_screen();
           video_set_cursor(video_get_rows()/2, 0);
           video_printf(title_msg);
-          video_printf("[Recovery    Mode]         <<==\n");
+          video_printf("RECOVERY   Mode         <<==\n");
 #ifdef MTK_FASTBOOT_SUPPORT
-          video_printf("[Fastboot    Mode]             \n");
+          video_printf("FASTBOOT   Mode             \n");
 #endif
-          video_printf("[Normal      Boot]             \n");
+          video_printf("NORMAL     BOOT             \n");
 #ifndef USER_BUILD
-          video_printf("[Normal      Boot +ftrace]    \n");
+          video_printf("NORMAL     BOOT +ftrace    \n");
 #endif
 
 #if (defined(MTK_NCP1851_SUPPORT) || defined(MTK_BQ24196_SUPPORT))    
@@ -51,11 +51,11 @@ void boot_mode_menu_select()
 
                             video_set_cursor(video_get_rows()/2, 0);
                             video_printf(title_msg);
-                            video_printf("[Recovery    Mode]             \n");
-                            video_printf("[Fastboot    Mode]         <<==\n");
-                            video_printf("[Normal      Boot]             \n");
+                            video_printf("RECOVERY   Mode             \n");
+                            video_printf("FASTBOOT   Mode         <<==\n");
+                            video_printf("NORMAL     BOOT             \n");
 #ifndef USER_BUILD
-                            video_printf("[Normal      Boot +ftrace]     \n");
+                            video_printf("NORMAL     BOOT +ftrace     \n");
 #endif
                         break;
 #endif
@@ -64,13 +64,13 @@ void boot_mode_menu_select()
 
                             video_set_cursor(video_get_rows()/2, 0);
                             video_printf(title_msg);
-                            video_printf("[Recovery    Mode]             \n");
+                            video_printf("RECOVERY   Mode             \n");
 #ifdef MTK_FASTBOOT_SUPPORT
-                            video_printf("[Fastboot    Mode]             \n");
+                            video_printf("FASTBOOT   Mode             \n");
 #endif
-                            video_printf("[Normal      Boot]         <<==\n");
+                            video_printf("NORMAL     BOOT         <<==\n");
 #ifndef USER_BUILD
-                            video_printf("[Normal      Boot +ftrace]     \n");
+                            video_printf("NORMAL     BOOT +ftrace     \n");
 #endif
                         break;
 
@@ -84,18 +84,18 @@ void boot_mode_menu_select()
                             video_set_cursor(video_get_rows()/2, 0);
                             video_printf(title_msg);
 #ifdef USER_BUILD
-                            video_printf("[Recovery    Mode]         <<==\n");
+                            video_printf("RECOVERY   Mode         <<==\n");
 #ifdef MTK_FASTBOOT_SUPPORT
-                            video_printf("[Fastboot    Mode]             \n");
+                            video_printf("FASTBOOT   Mode             \n");
 #endif
-                            video_printf("[Normal      Boot]             \n");
+                            video_printf("NORMAL     BOOT             \n");
 #else
-                            video_printf("[Recovery    Mode]             \n");
+                            video_printf("RECOVERY   Mode             \n");
 #ifdef MTK_FASTBOOT_SUPPORT
-                            video_printf("[Fastboot    Mode]             \n");
+                            video_printf("FASTBOOT   Mode             \n");
 #endif
-                            video_printf("[Normal      Boot]             \n");
-                            video_printf("[Normal      Boot +ftrace] <<==\n");
+                            video_printf("NORMAL     BOOT             \n");
+                            video_printf("NORMAL     BOOT +ftrace <<==\n");
 #endif
                         break;
 #ifndef USER_BUILD
@@ -103,12 +103,12 @@ void boot_mode_menu_select()
                             select = 0;
                             video_set_cursor(video_get_rows()/2, 0);
                             video_printf(title_msg);
-                            video_printf("[Recovery    Mode]         <<==\n");
+                            video_printf("RECOVERY   Mode         <<==\n");
 #ifdef MTK_FASTBOOT_SUPPORT
-                            video_printf("[Fastboot    Mode]             \n");
+                            video_printf("FASTBOOT   Mode             \n");
 #endif
-                            video_printf("[Normal      Boot]             \n");
-                            video_printf("[Normal      Boot +ftrace]     \n");
+                            video_printf("NORMAL     BOOT             \n");
+                            video_printf("NORMAL     BOOT +ftrace     \n");
                             
                         break;
 #endif

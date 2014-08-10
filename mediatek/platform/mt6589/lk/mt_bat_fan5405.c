@@ -417,6 +417,34 @@ BATT_TEMPERATURE Batt_Temperature_Table[] = {
     };
 #endif
 
+#if (BAT_NTC_TINNO_10 == 1)    
+    BATT_TEMPERATURE Batt_Temperature_Table[] = {
+        {-30,124607},
+        {-25,94918},
+        {-20,73035},
+        {-15,56734},
+        {-10,44468},
+        { -5,35150},
+        {  0,28008},
+        {  5,22486},
+        { 10,18182},
+        { 15,14803},
+        { 20,12129},
+        { 25,10000},
+        { 30,8292},
+        { 35,6914},
+        { 40,5795},
+        { 45,4872},
+        { 50,4101},
+        { 55,3467},
+        { 60,2936},
+        { 65,2494},
+        { 70,2130},
+        { 75,1817},
+        { 80,1562}
+    };    
+#endif
+    
     if (Enable_BATDRV_LOG == 1) {
         printf("###### %d <-> %d ######\r\n", Batt_Temperature_Table[9].BatteryTemp, 
             Batt_Temperature_Table[9].TemperatureR);
@@ -427,21 +455,21 @@ BATT_TEMPERATURE Batt_Temperature_Table[] = {
         #ifdef CONFIG_DEBUG_MSG_NO_BQ27500
         printf("Res >= %d\n", Batt_Temperature_Table[0].TemperatureR);
         #endif
-        TBatt_Value = -20;
+        TBatt_Value = -30;
     }
-    else if(Res <= Batt_Temperature_Table[16].TemperatureR)
+    else if(Res <= Batt_Temperature_Table[22].TemperatureR)
     {
         #ifdef CONFIG_DEBUG_MSG_NO_BQ27500
-        printf("Res <= %d\n", Batt_Temperature_Table[16].TemperatureR);
+        printf("Res <= %d\n", Batt_Temperature_Table[22].TemperatureR);
         #endif
-        TBatt_Value = 60;
+        TBatt_Value = 80;
     }
     else
     {
         RES1 = Batt_Temperature_Table[0].TemperatureR;
         TMP1 = Batt_Temperature_Table[0].BatteryTemp;
         
-        for (i = 0; i <= 16; i++)
+        for (i = 0; i <= 22; i++)
         {
             if(Res >= Batt_Temperature_Table[i].TemperatureR)
             {
@@ -600,7 +628,7 @@ void fan5405_set_ac_current(void)
     //3). 0x02h->0x8Eh
     //4). 0x04h->0x19h
     //5). 0x05h->0x04h
-
+/*
     if(g_enable_high_vbat_spec == 1)
     {
         if(g_pmic_cid == 0x1020)
@@ -610,7 +638,9 @@ void fan5405_set_ac_current(void)
     }
     else
         fan5405_config_interface_liao(0x06,0x70); //set ISAFE
-    
+*/    
+        fan5405_config_interface_liao(0x06,0x74); //Ivan set ISAFE
+	
 #if defined(MTK_JEITA_STANDARD_SUPPORT)        
     if(g_temp_status == TEMP_NEG_10_TO_POS_0)
     {    
@@ -830,6 +860,7 @@ void ChargerHwInit_fan5405(void)
 
     if(temp_init_flag==0)
     {
+/*	
         if(g_enable_high_vbat_spec == 1)
         {
             if(g_pmic_cid == 0x1020)
@@ -839,7 +870,9 @@ void ChargerHwInit_fan5405(void)
         }
         else
             fan5405_config_interface_liao(0x06,0x70);
-        
+*/
+        fan5405_config_interface_liao(0x06,0x74);	//Ivan
+
         fan5405_config_interface_liao(0x00,0x80);
         fan5405_config_interface_liao(0x01,0xb1);
 
@@ -879,6 +912,8 @@ int gpio_on_out   = GPIO_OUT_ZERO;
 
 void pchr_turn_off_charging_fan5405 (void)
 {
+    temp_init_flag = 0;			//modify by wangyanhui 20130220
+
     if (Enable_BATDRV_LOG == 1) {
         printf("[BATTERY] pchr_turn_off_charging_fan5405 !\r\n");
     }
@@ -887,7 +922,7 @@ void pchr_turn_off_charging_fan5405 (void)
     mt_set_gpio_dir(gpio_number,gpio_off_dir);
     mt_set_gpio_out(gpio_number,gpio_off_out);
 
-    fan5405_config_interface_liao(0x01,0xbc);      
+   fan5405_config_interface_liao(0x01,0x78);      //0xbc->ox78 for CE=0 according to BQ24158 IC design notes and pre-charging could be limited to 500mA    
 }
 
 void pchr_turn_on_charging_fan5405 (void)
@@ -1427,8 +1462,17 @@ int BAT_CheckBatteryStatus_fan5405(void)
         }
 
 #if 1        
+//Ivan <<
+	if ((BMT_status.temperature >= MAX_CHARGE_TEMPERATURE) ||
+	(BMT_status.temperature <= MIN_CHARGE_TEMPERATURE) ||
+	(BMT_status.temperature == ERR_CHARGE_TEMPERATURE))
+	{
+	    leds_deinit();
+	}
+	else
+//Ivan >>
         /* LK charging LED */
-        if ( (bat_volt_check_point >= 90)  || (user_view_flag == KAL_TRUE) ) {
+        if ( (bat_volt_check_point >= 100)  || (user_view_flag == KAL_TRUE) ) {
             leds_battery_full_charging();
         } else if(bat_volt_check_point <= 10) {
             leds_battery_low_charging();
@@ -1545,6 +1589,7 @@ int BAT_CheckBatteryStatus_fan5405(void)
     {
         printf(  "[BATTERY] Battery Under Temperature or NTC fail !!\n\r");                
         BMT_status.bat_charging_state = CHR_ERROR;
+        leds_deinit();
         return PMU_STATUS_FAIL;       
     }
     #endif                
@@ -1552,6 +1597,7 @@ int BAT_CheckBatteryStatus_fan5405(void)
     {
         printf(  "[BATTERY] Battery Over Temperature !!\n\r");                
         BMT_status.bat_charging_state = CHR_ERROR;
+        leds_deinit();
         return PMU_STATUS_FAIL;       
     }
 #endif    
@@ -1563,6 +1609,7 @@ int BAT_CheckBatteryStatus_fan5405(void)
         {
             printf(  "[BATTERY]Charger under voltage!!\r\n");                    
             BMT_status.bat_charging_state = CHR_ERROR;
+            leds_deinit();
             return PMU_STATUS_FAIL;        
         }
         #endif        
@@ -1571,6 +1618,7 @@ int BAT_CheckBatteryStatus_fan5405(void)
             printf(  "[BATTERY]Charger over voltage !!\r\n");                    
             BMT_status.charger_protect_status = charger_OVER_VOL;
             BMT_status.bat_charging_state = CHR_ERROR;
+            leds_deinit();
             return PMU_STATUS_FAIL;        
         }
     }
@@ -1885,9 +1933,17 @@ void BAT_thread_fan5405(void)
 void lk_charging_display()
 {
     #define BATTERY_BAR 25
-
     mt_disp_power(TRUE);
     
+//Ivan <<
+    if ((BMT_status.temperature >= MAX_CHARGE_TEMPERATURE) ||
+    (BMT_status.temperature <= MIN_CHARGE_TEMPERATURE) ||
+    (BMT_status.temperature == ERR_CHARGE_TEMPERATURE))
+    {
+	 mt_disp_show_battery_capacity(0);
+    }
+    else
+//Ivan >>    
     if ( (BMT_status.bat_full) || (user_view_flag == KAL_TRUE) ) 
     {        
         if(g_bl_on == KAL_TRUE)
@@ -2012,7 +2068,15 @@ void mt65xx_bat_init(void)
     //pchr_turn_off_charging_fan5405();
     BMT_status.bat_vol = get_bat_sense_volt(1);
     printf("check VBAT=%d mV with %d mV\n", BMT_status.bat_vol, BATTERY_LOWVOL_THRESOLD);
+    
+//Ivan     
+    fan5405_hw_init();
+    
+	 printf("[mt65xx_bat_init] turn off charging begin  A----- add by yangyan \n");
+        pchr_turn_off_charging_fan5405();			//modify by yangyan
+        printf("[mt65xx_bat_init] turn off charging end   A----- add by yangyan \n");
 
+/*		
     if ((upmu_is_chr_det() == KAL_TRUE))
     {
         fan5405_hw_init();        
@@ -2020,6 +2084,7 @@ void mt65xx_bat_init(void)
         fan5405_dump_register();            
 		pchr_turn_on_charging_fan5405();
     }
+*/
 	pmic_config_interface(INT_STATUS0,0x1,0x1,9);
 	if(g_boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT && (upmu_get_pwrkey_deb()==0) ) {
 		printf("[mt65xx_bat_init] KPOC+PWRKEY=>change boot mode\n");

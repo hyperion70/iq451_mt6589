@@ -626,6 +626,9 @@ extern int g_pmic_cid;
 
 void fan5405_hw_init(void)
 {    
+//Ivan	
+
+/*    
     if(g_enable_high_vbat_spec == 1)
     {
         if(g_pmic_cid == 0x1020)
@@ -644,5 +647,9 @@ void fan5405_hw_init(void)
         printf("[fan5405_hw_init] (0x06,0x70)\n");
         fan5405_config_interface_liao(0x06,0x70); // set ISAFE
     }
+*/
+//Ivan	
+        fan5405_config_interface_liao(0x06,0x75); // set ISAFE
+    
 }
 
