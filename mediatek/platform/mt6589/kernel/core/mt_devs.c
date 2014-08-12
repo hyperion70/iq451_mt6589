@@ -1459,6 +1459,16 @@ static struct platform_device actuator_dev = {
 	.name		  = "lens_actuator",
 	.id		  = -1,
 };
+#if 0
+static struct platform_device actuator_dev1 = {
+	.name		  = "lens_actuator1",
+	.id		  = -1,
+};//LINE <> <DATE20130307> <add sensor:truly ov8825> wupingzhou
+static struct platform_device actuator_dev2 = {
+	.name		  = "lens_actuator2",
+	.id		  = -1,
+};//LINE <> <DATE20130408> <add sensor:sunny ov8825 MTM> wupingzhou
+#endif
 /*=======================================================================*/
 /* MT6575 jogball                                                        */
 /*=======================================================================*/
@@ -1530,7 +1540,7 @@ __init int mt6589_board_init(void)
 #else
 		key = 0;
 #endif
-		memcpy(serial_number, "WIKO", 4);
+		memcpy(serial_number, "FLY IQ451", 9);
 		retval = kobject_init_and_add(&sn_kobj, &sn_ktype, NULL, "sys_info");
 
 		if (retval < 0)
@@ -1966,6 +1976,17 @@ retval = platform_device_register(&dummychar_device);
     if (retval != 0){
         return retval;
     }
+#if 0
+    retval = platform_device_register(&actuator_dev1);
+    if (retval != 0){
+        return retval;
+    }//LINE <> <DATE20130307> <add sensor:truly ov8825> wupingzhou
+    retval = platform_device_register(&actuator_dev2);
+    if (retval != 0){
+        return retval;
+    }//LINE <> <DATE20130408> <add sensor:sunny ov8825 MTM> wupingzhou
+#endif
+
 #endif
 //
 //=======================================================================
