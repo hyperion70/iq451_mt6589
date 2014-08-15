@@ -2,7 +2,7 @@
 #include <cust_leds.h>
 #include <platform/mt_gpio.h>
 #include <platform/mt_gpt.h>
-#include <platform/mt_pwm.h>
+//#include <asm/arch/mt6577_pwm.h>
 
 //extern int DISP_SetBacklight(int level);
 
@@ -43,8 +43,8 @@ int Cust_GPIO_SetBacklight(unsigned int level)
 	return 0;
 }
 static struct cust_mt65xx_led cust_led_list[MT65XX_LED_TYPE_TOTAL] = {
-	{"red",               MT65XX_LED_MODE_PMIC, MT65XX_LED_PMIC_NLED_ISINK2,{0}},
-	{"green",             MT65XX_LED_MODE_PMIC, MT65XX_LED_PMIC_NLED_ISINK1,{0}},
+	{"red",               MT65XX_LED_MODE_NONE, -1,{0}},
+	{"green",             MT65XX_LED_MODE_NONE, -1,{0}},
 	{"blue",              MT65XX_LED_MODE_NONE, -1,{0}},
 	{"jogball-backlight", MT65XX_LED_MODE_NONE, -1,{0}},
 	{"keyboard-backlight",MT65XX_LED_MODE_NONE, -1,{0}},

@@ -633,19 +633,19 @@ void fan5405_hw_init(void)
     {
         if(g_pmic_cid == 0x1020)
         {
-            printf("[fan5405_hw_init] (0x06,0x70) because 0x1020\n");
-            fan5405_config_interface_liao(0x06,0x70); // set ISAFE
+            printf("[bq24158_hw_init] (0x06,0x70) because 0x1020\n");
+            bq24158_config_interface_reg(0x06,0x70); // set ISAFE
         }
         else
         {
-            printf("[fan5405_hw_init] (0x06,0x77)\n");
-            fan5405_config_interface_liao(0x06,0x77); // set ISAFE and HW CV point (4.34)
+            printf("[bq24158_hw_init] (0x06,0x77)\n");
+            bq24158_config_interface_reg(0x06,0x77); // set ISAFE and HW CV point (4.34)
         }
     }
     else
     {
-        printf("[fan5405_hw_init] (0x06,0x70)\n");
-        fan5405_config_interface_liao(0x06,0x70); // set ISAFE
+        printf("[bq24158_hw_init] (0x06,0x70)\n");
+        bq24158_config_interface_reg(0x06,0x70); // set ISAFE
     }
 */
 //Ivan	

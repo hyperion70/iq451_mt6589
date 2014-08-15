@@ -33,7 +33,13 @@ static LCD_IF_ID ctrl_if = LCD_IF_PARALLEL_0;
 
 static volatile int direct_link_layer = -1;
 static UINT32 disp_fb_bpp = 32;     ///ARGB8888
+#ifdef MTK_TRIPLE_FRAMEBUFFER_SUPPORT
+static UINT32 disp_fb_pages = 3;     ///TRIPLE buffer
+static BOOL is_page_set = TRUE;
+#else
 static UINT32 disp_fb_pages = 2;     ///double buffer
+static BOOL is_page_set = FALSE;
+#endif
 
 static BOOL is_engine_in_suspend_mode = FALSE;
 static BOOL is_lcm_in_suspend_mode    = FALSE;
@@ -373,8 +379,8 @@ const LCM_DRIVER *disp_drv_get_lcm_driver(const char *lcm_name)
 				
 					lcm_drv = lcm;
 					if(LCM_TYPE_DSI == lcm_params->type)
-						DSI_Deinit();
-//						dsi_enable_power(FALSE);
+//						DSI_Deinit();
+						dsi_enable_power(FALSE);
 					printk("\t\t[fail]\n");
 				}
 			}
@@ -794,10 +800,16 @@ DISP_STATUS DISP_LCDPowerEnable(BOOL enable)
 	return DISP_STATUS_OK;
 }
 
+bool first_backlight = true;
+
 DISP_STATUS DISP_SetBacklight(UINT32 level)
 {
 	DISP_STATUS ret = DISP_STATUS_OK;
-
+	if(first_backlight && level == 0){
+		first_backlight = false;
+		printf("First set backlight = 0, return!\n");
+		return ret;
+	}
 	if (down_interruptible(&sem_update_screen)) {
 		printk("ERROR: Can't get sem_update_screen in DISP_SetBacklight()\n");
 		return DISP_STATUS_ERROR;
@@ -805,7 +817,6 @@ DISP_STATUS DISP_SetBacklight(UINT32 level)
 
 	disp_drv_init_context();
 
-	LCD_WaitForNotBusy();
 	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode == CMD_MODE)
 		DSI_CHECK_RET(DSI_WaitForNotBusy());
 
@@ -814,14 +825,7 @@ DISP_STATUS DISP_SetBacklight(UINT32 level)
 		goto End;
 	}
 
-	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE)
-		DSI_SetMode(CMD_MODE);
-
 	lcm_drv->set_backlight(level);
-	DSI_LP_Reset();
-	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE)
-		DSI_SetMode(lcm_params->dsi.mode);
-
 End:
 
 	up(&sem_update_screen);
@@ -1337,9 +1341,31 @@ DISP_STATUS DISP_SetPages(UINT32 pages)
 
 	return DISP_STATUS_OK; 
 }
-
+extern u32 get_devinfo_with_index(u32 index);
 UINT32 DISP_GetPages(void)
 {
+    u32 isHwSupportTripleBuffer = 0;
+
+    if(is_page_set==FALSE)
+    {
+        isHwSupportTripleBuffer = get_devinfo_with_index(3) & 0x00000007;
+
+        if(isHwSupportTripleBuffer == 0x1)
+        {
+        	printf("[LK]DISP_GetPages: hw support!\n");
+            disp_fb_pages = 3;
+        }
+        else
+        {
+        	printf("[LK]DISP_GetPages: hw not support!\n");
+            disp_fb_pages = 2;
+        }
+
+        is_page_set = TRUE;
+    }
+
+    printf("[LK]DISP_GetPages: disp_fb_pages=%d!\n", disp_fb_pages);
+    
     return disp_fb_pages;   // Double Buffers
 }
 

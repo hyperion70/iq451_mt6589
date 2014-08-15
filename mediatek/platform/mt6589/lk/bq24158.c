@@ -625,7 +625,10 @@ extern int g_enable_high_vbat_spec;
 extern int g_pmic_cid;
 
 void bq24158_hw_init(void)
-{    
+{   
+//Ivan	
+
+/*    
     if(g_enable_high_vbat_spec == 1)
     {
         if(g_pmic_cid == 0x1020)
@@ -644,5 +647,9 @@ void bq24158_hw_init(void)
         printf("[bq24158_hw_init] (0x06,0x70)\n");
         bq24158_config_interface_reg(0x06,0x70); // set ISAFE
     }
+*/
+//Ivan	
+    bq24158_config_interface_reg(0x06,0x72); // set ISAFE
+    
 }
 
